@@ -1,36 +1,48 @@
 # Geronimo's Cadillac
 
-Deep in my heart, there's a fire, a burnin' heart
-Deep in my heart, there's desire for a start
-I'm dying in emotion
-It's my world in fantasy
-I'm livin' in my, livin' in my dreams
-You're my heart, you're my soul
-I keep it shining everywhere I go
-You're my heart, you're my soul
-I'll be holding you forever
-Stay with you together
-You're my heart, you're my soul
-Yeah, a feelin' that our love will grow
-You're my heart, you're my soul
-That is the only thing I really know
-Let's close the door and believe my burnin' heart
-Feeling all right come on, open up your heart
-I'll keep the candles burning
-Let your body melt in mine
-I'm livin' in my, livin' in my dreams
-You're my heart, you're my soul
-I keep it shining everywhere I go
-You're my heart, you're my soul
-I'll be holding you forever
-Stay with you together
-You're my heart, you're my soul
-Yeah, a feelin' that our love will grow
-You're my heart, you're my soul
-That is the only thing I really know
-You're my heart, you're my soul
-Yeah, a feelin' that our love will grow
-You're my heart, you're my soul
-That is the only thing I really know
-You're my heart, you're my soul
-Yeah, a feelin' that our love will grow
+I wanna share my dreams
+Wanna share with you
+On the wings of love, like dreamers do
+Touch your heart
+You're the queen of broken hearts
+Oh, we are daytime friends and nighttime fools
+Wanna play this game
+You break the rules
+Tears of love are frozen tears
+
+Geronimo's Cadillac is making all girls too mad
+Geronimo has a heart, oh, it's a drag
+Geronimo's Cadillac are making all girls too sad
+Geronimo has a heart, oh, it's a drag
+
+Geronimo's Cadillac
+It's tossing, oh, in your head
+It's tossing and turning
+It's burning, It makes you mad
+Geronimo's Cadillac oh, baby I'll hold you back
+It's tossing and turning
+It's burning, It makes you sad
+
+I'm looking through the eyes, the eyes of love
+Made a fool of me, can't get enough
+Touch my heart
+Boulevard of broken dreams
+Another time for love, other place to be
+Don't let him take your love, your love from me
+Tears of love are frozen tears
+
+Geronimo's Cadillac is making all girls too mad
+Geronimo has a heart, oh, it's a drag
+Geronimo's Cadillac are making all girls too sad
+Geronimo has a heart, oh, it's a drag
+
+Geronimo's Cadillac
+It's tossing, oh, in your head
+It's tossing and turning
+It's burning, It makes you mad
+Geronimo's Cadillac oh, baby I'll hold you back
+It's tossing and turning
+It's burning, It makes you sad
+
+Geronimo's Cadillac is making all girls too mad
+Geronimo has a heart, oh, it's a drag
