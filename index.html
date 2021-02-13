@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plots</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto Light' !important;
+    }
+
+    .content {
+      text-align: center;
+    }
+
+    .plot {
+      display: inline-block;
+    }
+
+    img {
+      max-width: 50vw;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <h1 class="title">Plots</h1>
+    <div class="plots"></div>
+  </div>
+
+  <script src="lib/plotly-latest.min.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
