@@ -4,23 +4,18 @@
 */
 
 import {
-  random,
-  randomInt,
-  randomJS,
-  randomIntJS,
   getStatistics,
-  splitIntoParts,
   min,
   max,
-  average,
-  sum,
-  std,
   statisticsTeX
 } from './modules/statistics.js'
-import { delay, genArray } from './modules/utils.js'
+import { commonCounter, borders } from './modules/utils.js'
 import { readXcr } from './modules/files.js'
 import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
+import Matrix from './modules/Matrix.js'
+
+// const _ = require('lodash')
 
 const fs = require('fs')
 const encode = require('image-encode')
@@ -41,26 +36,147 @@ const corePath = './data/img'
 // addImage(savedImage)
 
 ;(async function () {
-  const width = 1024
-  const height = 1024
-  const xcr = await readXcr(`${corePath}/x-ray.xcr`)
-
-  const minValue = min(xcr.data)
-  const maxValue = max(xcr.data)
-  console.log({ minValue, maxValue })
-  const normalizer = 256 * (1 / (maxValue - minValue))
-  // const normalizer = 255 / 4095
-  // xcr.data = xcr.data.map(v => v + 1000)
-  const normalized = xcr.data.map(v => borders((v - minValue) * normalizer))
-  const savedImage = `${corePath}/shite.jpg`
-  fs.writeFileSync(savedImage, Buffer.from(encode(pixelsToValues(normalized), [width, height], 'jpg')))
-  addImage(savedImage)
+  const startMs = performance.now()
+  await runShite()
+  const endMs = performance.now()
+  console.log('Current run took', Number((endMs - startMs).toFixed(2)), 'ms.');
 })()
 
+async function runShite () {
+  const fullName = 'grace.jpg'
+  const [fileName, fileExt] = fullName.split('.')
+  const imagePath = `${corePath}/${fullName}`
+
+  // const width = 2048
+  // const height = 2500
+  // const xcr = await readXcr(`${corePath}/${fileName}.${fileExt}`)
+  // const arr = normalize(xcr.data)
+
+  const decoded = decode(fs.readFileSync(imagePath))
+  const { width, height } = decoded
+  const arr = toPixels(decoded.data)
+
+  const original = new Matrix(arr, { width, height })
+  const resized = new Matrix(arr, { width, height })
+  // const matrixCopy = new Matrix(arr, { width, height })
+
+  // matrix.rotate(270)
+
+  resized.resize({
+    width: Math.round(width * 1.7),
+    height: Math.round(height * 1.7),
+    method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
+  })
+  resized.resize({
+    width: original.width,
+    height: original.height,
+    method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
+  })
+
+  const diff = matrixAbsDifference(original, resized)
+
+  // matrixCopy.resize({
+  //   width: 32,
+  //   height: 32
+  // })
+
+  // [original, resized].forEach((matrix) => addMatrixToPage(matrix))
+  addMatrixToPage(original)
+  addMatrixToPage(resized)
+  addMatrixToPage(diff.powerTransform({ multiplier: 2, power: 1.25 }))
+  addMatrixToPage(diff.logTransform({ multiplier: 10 }))
+}
+
+function matrixDifference (m1, m2) {
+  return (new Matrix(m1)).map((v, r, c) => borders(m1.matrix[r][c] - m2.matrix[r][c]))
+}
+function matrixAbsDifference (m1, m2) {
+  return (new Matrix(m1)).map((v, r, c) => borders(Math.abs(m1.matrix[r][c] - m2.matrix[r][c])))
+}
+
+function addMatrixToPage (matrix) {
+  const savedImage = saveImage(matrix.toArray(), { width: matrix.width, height: matrix.height })
+  addImage(savedImage)
+}
+
+function saveImage (arr, { name = 'shite-' + commonCounter(), width, height } = {}) {
+  const savedImage = `${corePath}/temp/${name}.jpg`
+  fs.writeFileSync(savedImage, Buffer.from(encode(pixelsToValues(arr), [width, height], 'jpg')))
+  return savedImage
+}
+
+function normalize (data) {
+  const minValue = min(data)
+  const maxValue = max(data)
+  const normalizer = 256 * (1 / (maxValue - minValue))
+  return data.map(v => borders((v - minValue) * normalizer))
+}
+
+// function matrixElementFn (fn) {
+//   if (!matrix || matrix.length === 0 || matrix[0].length === 0) {
+//     console.error('BITCH, ARE YOU FUCKING WITH ME?', { fn: 'matrixElementFn', matrix })
+//     return []
+//   }
+//   const rows = matrix.length
+//   const columns = matrix[0].length
+//   for (let r = 0; r < rows; r++)
+//     for (let c = 0; c < rows; c++)
+//       fn(matrix[r][c], r, c)
+// }
+
+// function getMatrixData (matrix) {
+//   const rows = matrix.length
+//   const columns = matrix[0].length
+//   return { rows, columns }
+// }
+
+// function rotate (matrix, deg = 90) {
+//   const { rows, columns } = matrix
+//   if (deg === 90) {
+//     return genArray(columns, c => genArray(rows, r => matrix[rows - r - 1][c]))
+//   } else if (deg === 180) {
+
+//   } else if (deg === 270) {
+
+//   } else if (deg === 0 || deg === 360) {
+//     return matrix
+//   } else {
+//     console.log("POSHOL NAHUI, UMNIK EBANIY")
+//     return matrix
+//   }
+// }
+
+// function transposed (matrix) {
+//   const rows = matrix.length
+//   const columns = matrix[0].length
+//   return genArray(columns, c => genArray(rows, r => matrix[r][c]))
+// }
+
+// function arrayToMatrix (arr, { width, height } = {}) {
+//   if (!(arr && width > 0 && height > 0)) {
+//     console.error('THE FUCK ARE YOU GIVING ME?', { fn: 'arrayToMatrix', arr, width, height })
+//     return []
+//   }
+
+//   const result = {}
+//   result.matrix = genArray(height, r => genArray(width, c => arr[r * width + c]))
+//   result.basedArray = arr
+//   result.width = result.columns = width
+//   result.height = result.rows = height
+
+//   return result
+// }
+
+// function matrixToArray (matrix) {
+//   return matrix.flat()
+// }
+
 function addImage (imagePath) {
+  const $div = document.createElement('div')
   const $img = document.createElement('img')
   $img.src = imagePath
-  $plots.appendChild($img)
+  $div.appendChild($img)
+  $plots.appendChild($div)
 }
 
 function pixelsToValues (pixels) {
@@ -81,10 +197,6 @@ function toEachColor (RGBA, fn) {
     RGBA.B[i] = fn(RGBA.B[i], i, RGBA)
   }
 }
- 
-function borders (value, from = 0, to = 255) {
-  return value > to ? to : value < from ? from : value;
-}
 
 function nextLetter (current) {
   if (current === 'R') return 'G'
@@ -99,6 +211,14 @@ function toRGBA (imageData) {
   for (const value of imageData) {
     result[current].push(value)
     current = nextLetter(current)
+  }
+  return result
+}
+
+function toPixels (imageData) {
+  const result = []
+  for (let i = 0; i < imageData.length; i += 4) {
+    result.push(imageData[i])
   }
   return result
 }

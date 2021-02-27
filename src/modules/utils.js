@@ -45,3 +45,12 @@ export function shuffle (arr) {
   }
   return arr
 }
+
+let counterValue = 1
+export function commonCounter () {
+  return counterValue++
+}
+
+export function borders (value, from = 0, to = 255) {
+  return value > to ? to : value < from ? from : value;
+}

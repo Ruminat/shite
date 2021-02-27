@@ -17,6 +17,7 @@
     "images": "^3.2.3"
   },
   "dependencies": {
+    "lodash": "^4.17.20",
     "node-wav": "^0.0.2",
     "plotly.js": "^1.58.4"
   }
