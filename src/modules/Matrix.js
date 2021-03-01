@@ -37,7 +37,12 @@ export default class Matrix {
     BILINEAR_INTERPOLATION: 'bilinear_interpolation',
   }
 
-  resize ({ width = this.width, height = this.height, method = Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR }) {
+  resize ({
+    multiplier = 2,
+    width = Math.floor(this.width * multiplier),
+    height = Math.floor(this.height * multiplier),
+    method = Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR
+  }) {
     const maxX = this.width - 1
     const maxY = this.height - 1
     const widthCoeff = maxX / width
@@ -66,6 +71,7 @@ export default class Matrix {
       console.log("TI EBLAN?", { fn: 'resize', width, height, method })
     }
     this.#calculateSides()
+    return this
   }
 
   matrixIterator = function* () {
@@ -108,13 +114,51 @@ export default class Matrix {
 
   createHistogram (values = 256) {
     const histogram = genArray(values, () => 0)
-    for ({ value } of this.matrixIterator()) {
+    for (const { value } of this.matrixIterator()) {
       histogram[Math.floor(value)] += 1
     }
+    return histogram
+  }
+
+  normalize (upperBound = 256) {
+    let minValue = this.matrix[0][0]
+    let maxValue = this.matrix[0][0]
+    for (const { value } of this.matrixIterator()) {
+      if (value < minValue) minValue = value
+      if (value > maxValue) maxValue = value
+    }
+    const normalizer = upperBound / (maxValue - minValue)
+    return this.map(v => borders((v - minValue) * normalizer))
+  }
+
+  pixelize (upperBound = 256) {
+    let minValue = this.matrix[0][0]
+    let maxValue = this.matrix[0][0]
+    for (const { value } of this.matrixIterator()) {
+      if (value < minValue) minValue = value
+      if (value > maxValue) maxValue = value
+    }
+    const normalizer = upperBound / (maxValue - minValue)
+    const backNormalizer = 256 / upperBound
+    return this.map(v => borders(backNormalizer * Math.round((v - minValue) * normalizer)))
+  }
+
+  histogramEqualization ({ values = 256, histogram = this.createHistogram(values) } = {}) {
+    const histogramAdditive = [...histogram]
+    for (let i = 1; i < values; i++) {
+      histogramAdditive[i] = histogramAdditive[i - 1] + histogramAdditive[i]
+    }
+    const normalizer = (values - 1) / (histogramAdditive[values - 1] - histogramAdditive[0])
+    const normalizedHistogram = histogramAdditive.map(h => normalizer * (h - histogramAdditive[0]))
+    return this.map(v => normalizedHistogram[Math.floor(v)])
   }
 
   #calculateSides () {
     this.rows    = this.height = this.matrix.length
     this.columns = this.width  = this.rows > 0 ? this.matrix[0].length : 0
+  }
+
+  copy () {
+    return new Matrix(this)
   }
 }

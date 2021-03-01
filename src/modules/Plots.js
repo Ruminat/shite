@@ -29,15 +29,21 @@ export default class Plots {
     if (x.length === 0) {
       x = y.map((_, i) => i + 1)
     }
+    if (type === 'histogram') x = y
     if (data !== null) {
       Plotly.newPlot(id, data, { ...layout, title })
     } else {
+      console.log("JIJA", id, [{ x, y, type }], { ...layout, title });
       Plotly.newPlot(id, [{ x, y, type }], { ...layout, title })
     }
   }
   // Строит столбцовую диаграмму.
   static barPlot ({ id = '', ys = [], from = 0, bars = 20, to = 100, title = 'Bar plot' } = {}) {
-    makePlot({ id, ...getBarData({ ys, from, to, bars }), title })
+    Plots.makePlot({ id, ...getBarData({ ys, from, to, bars }), title })
+  }
+  // Строит гистограму.
+  static histogramPlot ({ id = '', y = [], x = [], title = 'Histogram' } = {}) {
+    Plots.makePlot({ id, x, y, type: 'histogram', title })
   }
   // Получает данные столбцовой диаграммы.
   static getBarData ({ ys = [], bars = 20, from = 0, to = 100 } = {}) {

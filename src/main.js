@@ -23,6 +23,7 @@ const decode = require('image-decode')
 
 // Элемент, в который будем добавлять графики.
 const $plots = document.querySelector('.plots')
+const inlineImages = true
 
 const corePath = './data/img'
 
@@ -43,12 +44,12 @@ const corePath = './data/img'
 })()
 
 async function runShite () {
-  const fullName = 'grace.jpg'
+  const fullName = 'booba.jpg'
   const [fileName, fileExt] = fullName.split('.')
   const imagePath = `${corePath}/${fullName}`
 
-  // const width = 2048
-  // const height = 2500
+  // const width = 1024
+  // const height = 1024
   // const xcr = await readXcr(`${corePath}/${fileName}.${fileExt}`)
   // const arr = normalize(xcr.data)
 
@@ -57,34 +58,67 @@ async function runShite () {
   const arr = toPixels(decoded.data)
 
   const original = new Matrix(arr, { width, height })
-  const resized = new Matrix(arr, { width, height })
+    // .resize({
+    //   width: 420,
+    //   height: 420,
+    //   method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
+    // })
+    // .rotate(270)
+
+  // const brightened = (new Matrix(original)).resize()
+
+  // const resized = new Matrix(arr, { width, height })
   // const matrixCopy = new Matrix(arr, { width, height })
 
   // matrix.rotate(270)
 
-  resized.resize({
-    width: Math.round(width * 1.7),
-    height: Math.round(height * 1.7),
-    method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
-  })
-  resized.resize({
-    width: original.width,
-    height: original.height,
-    method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
-  })
+  // const multiplier = 1/3
+  // const neighbour = (new Matrix(original))
+  //   .resize({ multiplier, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR})
+    // .resize({ width: original.width, height: original.height, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR})
 
-  const diff = matrixAbsDifference(original, resized)
-
-  // matrixCopy.resize({
-  //   width: 32,
-  //   height: 32
+  // const bilinear = (new Matrix(original))
+  //   .resize({ multiplier, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION})
+    // .resize({ width: original.width, height: original.height, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION})
+  // resized.resize({
+  //   width: original.width,
+  //   height: original.height,
+  //   method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
   // })
 
-  // [original, resized].forEach((matrix) => addMatrixToPage(matrix))
+  const equalized = original.copy().histogramEqualization()
+  // const diff1 = matrixAbsDifference(original, neighbour)
+  // const diff2 = matrixAbsDifference(original, bilinear)
+  
+  addPlots([
+    { ys: original.createHistogram() },
+    { ys: equalized.createHistogram() }
+  ])
+
+
+  const phi = 2.6180339887
+
+  // const neighbour = original.copy()
+  //   .resize({ multiplier: phi, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR })
+  //   .resize({ width: 256, height: 256, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR })
+  // const bilinear = original.copy()
+  //   .resize({ multiplier: phi, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION })
+  //   .resize({ width: 256, height: 256, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION })
+
   addMatrixToPage(original)
-  addMatrixToPage(resized)
-  addMatrixToPage(diff.powerTransform({ multiplier: 2, power: 1.25 }))
-  addMatrixToPage(diff.logTransform({ multiplier: 10 }))
+  addMatrixToPage(equalized)
+  // addMatrixToPage(matrixAbsDifference(original, neighbour).powerTransform({ multiplier: 0.25, power: 2 }))
+  // addMatrixToPage(matrixAbsDifference(original, bilinear).powerTransform({ multiplier: 0.25, power: 2 }))
+  // addMatrixToPage(original.logTransform({ multiplier: 15 }))
+  // addMatrixToPage(original.powerTransform({ multiplier: 0.25, power: 1.5 }))
+  // addMatrixToPage(original.histogramEqualization())
+  // addMatrixToPage(bilinear)
+  // addMatrixToPage(diff1.powerTransform({ multiplier: 2, power: 2 }))
+  // addMatrixToPage(diff2.powerTransform({ multiplier: 2, power: 2 }))
+  // addMatrixToPage(resized)
+  // addMatrixToPage(diff.powerTransform({ multiplier: 2, power: 2 }))
+  // addMatrixToPage((new Matrix(diff)).powerTransform({ multiplier: 1.5, power: 1.1 }))
+  // addMatrixToPage((new Matrix(diff)).logTransform({ multiplier: 20 }))
 }
 
 function matrixDifference (m1, m2) {
@@ -172,11 +206,16 @@ function normalize (data) {
 // }
 
 function addImage (imagePath) {
-  const $div = document.createElement('div')
+  const $container = inlineImages
+    ? document.createElement('span')
+    : document.createElement('div')
+  if (inlineImages) {
+    $container.style.margin = '0.1rem'
+  }
   const $img = document.createElement('img')
   $img.src = imagePath
-  $div.appendChild($img)
-  $plots.appendChild($div)
+  $container.appendChild($img)
+  $plots.appendChild($container)
 }
 
 function pixelsToValues (pixels) {
@@ -269,13 +308,17 @@ function addPlots (plots) {
   $plotsBlock.className = 'plots-block'
   $plots.appendChild($plotsBlock)
 
-  for (const { data = null, xs = [], ys = [], title = '' } of plots) {
+  for (const { data = null, xs = [], ys = [], title = '', type = 'line' } of plots) {
     const id = `plotly-${UID()}`
     const $plot = document.createElement('div')
     $plot.id = id
     $plot.className = 'plot'
     $plotsBlock.appendChild($plot)
 
-    Plots.makePlot({ id, data, x: xs, y: ys, title })
+    if (type === 'line') {
+      Plots.makePlot({ id, data, x: xs, y: ys, title })
+    } else if (type === 'histogram') {
+      Plots.histogramPlot({ id, data, x: xs, y: ys, title })
+    }
   }
 }
