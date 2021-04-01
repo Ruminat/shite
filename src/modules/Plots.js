@@ -33,7 +33,6 @@ export default class Plots {
     if (data !== null) {
       Plotly.newPlot(id, data, { ...layout, title })
     } else {
-      console.log("JIJA", id, [{ x, y, type }], { ...layout, title });
       Plotly.newPlot(id, [{ x, y, type }], { ...layout, title })
     }
   }
@@ -153,7 +152,7 @@ export default class Plots {
     return (ys1.length < ys2.length ? ys1 : ys2).map((_, i) => Math.abs(ys1[i] - ys2[i]))
   }
   // Находит спектр набора данных, norm — нужна ли нормировка.
-  static spectrum (arr, n, { norm = true } = {}) {
+  static spectrum (arr, n, { norm = false } = {}) {
     const N = arr.length
     const multiplier = 2 * Math.PI * n / N
     let realPart = 0
@@ -167,7 +166,7 @@ export default class Plots {
     else return Math.sqrt((realPart**2 + imaginaryPart**2))
   }
   // Возвращает данные для построения графика спектра.
-  static spectrumPlotData ({ ys = [], dt = 0.1, title = '', norm = true } = {}) {
+  static spectrumPlotData ({ ys = [], dt = 0.1, title = '', norm = false } = {}) {
     const ns = ys.map((_, i) => i + 1)
     const len = ys.length
     const df = 1 / (dt * len)
@@ -177,6 +176,11 @@ export default class Plots {
       title
     }
   }
+  // Возвращает данные для построения графика спектра.
+  static fourierTransform1D (ys = [], { norm = false } = {}) {
+    const ns = ys.map((_, i) => i + 1)
+    return ns.map(n => Plots.spectrum(ys, n, { norm }))
+  }
   // Стационарность данных.
   static stationaryStats (arr) {
     const partsCount = 10
@@ -184,14 +188,14 @@ export default class Plots {
 
 
     const differences = {}
-    for (const type of ['avg', 'std', 'squareAvg']) {
-      const values = parts.map(part => part[type])
+    for (const statisticType of ['avg', 'std', 'squareAvg']) {
+      const values = parts.map(part => part[statisticType])
       const stats = getStatistics(values)
-      differences[type] = stats.max - stats.min
+      differences[statisticType] = stats.max - stats.min
     }
 
-    for (const type of ['avg', 'std', 'squareAvg'])
-      differences[type] = getStatistics(differences[type])
+    for (const statisticType of ['avg', 'std', 'squareAvg'])
+      differences[statisticType] = getStatistics(differences[statisticType])
 
     return differences
   }

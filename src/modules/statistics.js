@@ -19,6 +19,13 @@ export const min = arr => arr.reduce((p, v) => p < v ? p : v)
 export const max = arr => arr.reduce((p, v) => p > v ? p : v)
 export const sum = arr => arr.reduce((a, b) => a + b)
 export const average = arr => sum(arr) / arr.length
+export const median = arr => {
+  const sortedArr = [...arr].sort((a, b) => a - b)
+  const middleIndex = Math.floor(arr.length / 2)
+  return arr.length % 2 === 0
+    ? (sortedArr[middleIndex - 1] + sortedArr[middleIndex]) / 2
+    : sortedArr[middleIndex]
+}
 export const variance = arr => {
   const avg = average(arr)
   return (1 / arr.length) * arr.reduce((a, b) => a + (b - avg)**2, 0)

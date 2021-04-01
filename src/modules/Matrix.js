@@ -1,15 +1,21 @@
 import { genArray, borders } from './utils.js'
+import { randomJS, average, median } from './statistics.js'
+import { fourier1DTransform, reverseFourier1DTransform } from './lists.js'
 
 export default class Matrix {
   constructor (base, { width = base.width, height = base.height } = {}) {
     if (base instanceof Array) {
-      this.matrix = genArray(height, r => genArray(width, c => base[r * width + c]))  
+      this.matrix = genArray(height, r => genArray(width, c => base[r * width + c]))
     } else if (base instanceof Matrix) {
       this.matrix = genArray(height, r => genArray(width, c => base.matrix[r][c]))
     } else {
       console.log('A MOZHET TI PIDOR!?')
     }
     this.#calculateSides()
+  }
+
+  copy () {
+    return new Matrix(this)
   }
 
   transposed () {
@@ -84,8 +90,8 @@ export default class Matrix {
 
   #getNearestIndexes (i, maxIndex) {
     const floor = Math.floor(i)
-    if (i + 1 > maxIndex) return [maxIndex - 1, maxIndex]  
-    else if (i < 1) return [0, 1]  
+    if (i + 1 > maxIndex) return [maxIndex - 1, maxIndex]
+    else if (i < 1) return [0, 1]
     else return [floor, floor + 1]
   }
 
@@ -98,26 +104,23 @@ export default class Matrix {
     return this
   }
 
+  mapByRow (fn) {
+    this.matrix = genArray(this.rows, r => fn(this.matrix[r], r))
+    return this
+  }
+
   negative (maxValue = 255) {
     return this.map(v => maxValue - v)
   }
 
   logTransform ({ multiplier = 1, useBorders = true } = {}) {
     if (useBorders) return this.map(v => borders(multiplier * Math.log(1 + v)))
-    else return is.map(v => multiplier * Math.log(1 + v))
+    else return this.map(v => multiplier * Math.log(1 + v))
   }
 
   powerTransform ({ multiplier = 1, power = 2, useBorders = true } = {}) {
     if (useBorders) return this.map(v => borders(multiplier * v**power))
-    else return is.map(v => multiplier * v**power)
-  }
-
-  createHistogram (values = 256) {
-    const histogram = genArray(values, () => 0)
-    for (const { value } of this.matrixIterator()) {
-      histogram[Math.floor(value)] += 1
-    }
-    return histogram
+    else return this.map(v => multiplier * v**power)
   }
 
   normalize (upperBound = 256) {
@@ -131,16 +134,22 @@ export default class Matrix {
     return this.map(v => borders((v - minValue) * normalizer))
   }
 
-  pixelize (upperBound = 256) {
-    let minValue = this.matrix[0][0]
-    let maxValue = this.matrix[0][0]
-    for (const { value } of this.matrixIterator()) {
-      if (value < minValue) minValue = value
-      if (value > maxValue) maxValue = value
+  pixelize (bits = 8, { upperBound = 256 } = {}) {
+    if (![1, 2, 3, 4, 5, 6, 7, 8].includes(bits)) {
+      console.error("TI DOLBAEB ILI DA?");
+      return this
     }
-    const normalizer = upperBound / (maxValue - minValue)
-    const backNormalizer = 256 / upperBound
-    return this.map(v => borders(backNormalizer * Math.round((v - minValue) * normalizer)))
+    const forward = 1 / 2**(9 - bits)
+    const backward = 2**(9 - bits)
+    return this.map(v => borders(Math.round(v * forward) * backward))
+  }
+
+  createHistogram (values = 256) {
+    const histogram = genArray(values, () => 0)
+    for (const { value } of this.matrixIterator()) {
+      histogram[Math.floor(value)] += 1
+    }
+    return histogram
   }
 
   histogramEqualization ({ values = 256, histogram = this.createHistogram(values) } = {}) {
@@ -157,8 +166,102 @@ export default class Matrix {
     this.rows    = this.height = this.matrix.length
     this.columns = this.width  = this.rows > 0 ? this.matrix[0].length : 0
   }
+  calculateSides () {
+    this.rows    = this.height = this.matrix.length
+    this.columns = this.width  = this.rows > 0 ? this.matrix[0].length : 0
+    return this
+  }
 
-  copy () {
-    return new Matrix(this)
+  static NOISE_METHODS = {
+    SALT_AND_PEPPER: 'salt_and_pepper',
+    WHITE_NOISE: 'white_noise',
+    MIX: 'mix',
+  }
+
+  addNoise ({ method = Matrix.NOISE_METHODS.WHITE_NOISE, probability = 0.01, multiplier = 50 } = {}) {
+    if (method === Matrix.NOISE_METHODS.WHITE_NOISE) {
+      return this.map(v => borders(v + randomJS(-multiplier, multiplier)))
+    } else if (method === Matrix.NOISE_METHODS.SALT_AND_PEPPER) {
+      return this.map(v => randomJS() < probability ? (randomJS() < 0.5 ? 255 : 0) : v)
+    } else if (method === Matrix.NOISE_METHODS.MIX) {
+      return this
+        .addNoise({ method: Matrix.NOISE_METHODS.WHITE_NOISE, probability, multiplier })
+        .addNoise({ method: Matrix.NOISE_METHODS.SALT_AND_PEPPER, probability, multiplier })
+    } else {
+      console.log("A TI NE OHUEL, HUILO, BLYAT");
+      return this
+    }
+  }
+
+  static DENOISE_METHODS = {
+    WINDOW_AVERAGE: 'window_average',
+    WINDOW_MEDIAN: 'window_median',
+  }
+
+  denoise ({ method = Matrix.DENOISE_METHODS.WINDOW_AVERAGE, windowPadding = 2 } = {}) {
+    const windowWidth = 2 * windowPadding + 1
+    for (let row = windowPadding; row < this.rows - windowPadding; row++) {
+      for (let column = windowPadding; column < this.columns - windowPadding; column++) {
+        const flatWindow = this.#getWindow({ windowPadding, windowWidth, row, column }).flat()
+        if (method === Matrix.DENOISE_METHODS.WINDOW_AVERAGE) {
+          this.matrix[row][column] = average(flatWindow)
+        } else {
+          this.matrix[row][column] = median(flatWindow)
+        }
+      }
+    }
+    return this
+  }
+
+  #getWindow ({ windowPadding, windowWidth, row, column }) {
+    return genArray(windowWidth, r => genArray(windowWidth, c => this.matrix[row - windowPadding + r][column - windowPadding + c]))
+  }
+
+  fourierTransform2D () {
+    return this
+      .mapByRow(row => fourier1DTransform(row))
+      .transposed()
+      .mapByRow(column => fourier1DTransform(column))
+      .transposed()
+      .fourierRearrange()
+  }
+
+  prettifyFourier ({ logN = null } = {}) {
+    const toReal = this.map(x => Math.sqrt(x.re**2 + x.im**2))
+    const prettify = logN !== null
+      ? toReal.logTransform({ multiplier: logN, useBorders: false })
+      : toReal
+    return prettify.normalize()
+  }
+
+  reverseFourierTransform2D () {
+    return this
+      .fourierRearrange()
+      .transposed()
+      .mapByRow(column => reverseFourier1DTransform(column))
+      .transposed()
+      .mapByRow(row => reverseFourier1DTransform(row))
+  }
+
+  fourierRearrange () {
+    const rowsCenter = Math.round(this.rows / 2)
+    const columnsCenter = Math.round(this.columns / 2)
+    for (let r = 0; r < rowsCenter; r++) {
+      for (let c = 0; c < columnsCenter; c++) {
+        // try {
+          [this.matrix[r][c], this.matrix[r + rowsCenter][c + columnsCenter]] =
+            [this.matrix[r + rowsCenter][c + columnsCenter], this.matrix[r][c]];
+        // } catch (err) {
+
+        // }
+        // try {
+          [this.matrix[r + rowsCenter][c], this.matrix[r][c + columnsCenter]] =
+            [this.matrix[r][c + columnsCenter], this.matrix[r + rowsCenter][c]];
+        // } catch (err) {
+
+        // }
+      }
+    }
+    return this
   }
 }

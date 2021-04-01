@@ -7,13 +7,15 @@ import {
   getStatistics,
   min,
   max,
-  statisticsTeX
+  statisticsTeX,
+  randomJS
 } from './modules/statistics.js'
-import { commonCounter, borders } from './modules/utils.js'
+import { commonCounter, borders, genArray } from './modules/utils.js'
 import { readXcr } from './modules/files.js'
 import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
 import Matrix from './modules/Matrix.js'
+import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
 
 // const _ = require('lodash')
 
@@ -27,15 +29,6 @@ const inlineImages = true
 
 const corePath = './data/img'
 
-// const imagePath = `${corePath}/angel.jpg`
-// addImage(imagePath)
-// const { data, width, height } = decode(fs.readFileSync(imagePath))
-// const RGBA = toRGBA(data)
-// toEachColor(RGBA, v => borders(v**3 - v**2 - 10*v))
-// const savedImage = `${corePath}/test.jpg`
-// fs.writeFileSync(savedImage, Buffer.from(encode(toValues(RGBA), [width, height], 'jpg')))
-// addImage(savedImage)
-
 ;(async function () {
   const startMs = performance.now()
   await runShite()
@@ -44,93 +37,118 @@ const corePath = './data/img'
 })()
 
 async function runShite () {
-  const fullName = 'booba.jpg'
+  const fullName = 'some-kek.xcr'
+  // const fullName = 'x-ray.xcr'
   const [fileName, fileExt] = fullName.split('.')
   const imagePath = `${corePath}/${fullName}`
 
-  // const width = 1024
-  // const height = 1024
-  // const xcr = await readXcr(`${corePath}/${fileName}.${fileExt}`)
+  const sizes = {
+    'x-ray.xcr': { width: 1024, height: 1024 },
+    'some-kek.xcr': { width: 2048, height: 2500 },
+  }
+  const { width, height } = sizes[fullName]
+  const xcr = await readXcr(`${corePath}/${fileName}.${fileExt}`)
   // const arr = normalize(xcr.data)
+  const arr = xcr.data
 
-  const decoded = decode(fs.readFileSync(imagePath))
-  const { width, height } = decoded
-  const arr = toPixels(decoded.data)
+  // const decoded = decode(fs.readFileSync(imagePath))
+  // const { width, height } = decoded
+  // const arr = toPixels(decoded.data)
 
-  const original = new Matrix(arr, { width, height })
-    // .resize({
-    //   width: 420,
-    //   height: 420,
-    //   method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
-    // })
+  // insert your shit here
+
+  const original = new Matrix(arr, { width, height }).rotate(270).normalize()
+
     // .rotate(270)
+  // const resized = original.copy().resize({ multiplier: 2 })
 
-  // const brightened = (new Matrix(original)).resize()
+  const booba = 0.3839999999
+  const bones = 0.2939453125
 
-  // const resized = new Matrix(arr, { width, height })
-  // const matrixCopy = new Matrix(arr, { width, height })
+  const xRay = {
+    max: 0.38654439024,
+    interval: 0.05,
+    m: 16
+  }
+  xRay.weights = Plots.potterBandStopWeights({
+    fc1: xRay.max - xRay.interval,
+    fc2: xRay.max + xRay.interval,
+    m: xRay.m,
+    dt: 1
+  })
+  const filtered = original.copy().mapByRow(r => Plots.convolution(r, xRay.weights))
+    .calculateSides()
+    .mapByRow(row => row.slice(xRay.m, xRay.m + original.columns).map(x => borders(x)))
+    .calculateSides()
+  const resizedFiltered = filtered.copy().resize({ width: 256, height: 256 })
 
-  // matrix.rotate(270)
+  console.log('Maximum', findMaximum({ plot: true }))
 
-  // const multiplier = 1/3
-  // const neighbour = (new Matrix(original))
-  //   .resize({ multiplier, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR})
-    // .resize({ width: original.width, height: original.height, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR})
+  function findMaximum ({ step = 10, plot = false } = {}) {
+    const spectres = []
+    const maximums = []
+    let prevRowD = null
+    const maxI = !plot ? original.rows : 60
+    for (let i = 0; i < maxI; i += step) {
+      const { matrixRowD, spectre } = processRow(i, prevRowD)
+      prevRowD = matrixRowD
+      const secondHalf = spectre.ys.slice(spectre.ys.length / 2)
+      maximums.push(0.25 + indexOfMax(secondHalf) / (spectre.ys.length * 2))
+      if (plot) spectres.push(spectre)
+    }
+    if (plot) addPlots(spectres)
+    return { spectres, max: getStatistics(maximums) }
+  }
 
-  // const bilinear = (new Matrix(original))
-  //   .resize({ multiplier, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION})
-    // .resize({ width: original.width, height: original.height, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION})
-  // resized.resize({
-  //   width: original.width,
-  //   height: original.height,
-  //   method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION
-  // })
+  function processRow (row, prevRowD = null) {
+    const matrixRowD = derivative(original.matrix[row])
 
-  const equalized = original.copy().histogramEqualization()
-  // const diff1 = matrixAbsDifference(original, neighbour)
-  // const diff2 = matrixAbsDifference(original, bilinear)
-  
-  addPlots([
-    { ys: original.createHistogram() },
-    { ys: equalized.createHistogram() }
-  ])
+    if (prevRowD === null) prevRowD = matrixRowD
 
+    const crossCorr = Plots.crossCorrelation(matrixRowD, prevRowD)
+    const spectre = Plots.spectrumPlotData({ ys: crossCorr, dt: 1, title: `${row + 1}-row` })
 
-  const phi = 2.6180339887
+    return { matrixRowD, spectre }
+  }
 
-  // const neighbour = original.copy()
-  //   .resize({ multiplier: phi, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR })
-  //   .resize({ width: 256, height: 256, method: Matrix.RESIZE_METHODS.NEAREST_NEIGHBOUR })
-  // const bilinear = original.copy()
-  //   .resize({ multiplier: phi, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION })
-  //   .resize({ width: 256, height: 256, method: Matrix.RESIZE_METHODS.BILINEAR_INTERPOLATION })
-
-  addMatrixToPage(original)
-  addMatrixToPage(equalized)
-  // addMatrixToPage(matrixAbsDifference(original, neighbour).powerTransform({ multiplier: 0.25, power: 2 }))
-  // addMatrixToPage(matrixAbsDifference(original, bilinear).powerTransform({ multiplier: 0.25, power: 2 }))
-  // addMatrixToPage(original.logTransform({ multiplier: 15 }))
-  // addMatrixToPage(original.powerTransform({ multiplier: 0.25, power: 1.5 }))
-  // addMatrixToPage(original.histogramEqualization())
-  // addMatrixToPage(bilinear)
-  // addMatrixToPage(diff1.powerTransform({ multiplier: 2, power: 2 }))
-  // addMatrixToPage(diff2.powerTransform({ multiplier: 2, power: 2 }))
-  // addMatrixToPage(resized)
-  // addMatrixToPage(diff.powerTransform({ multiplier: 2, power: 2 }))
-  // addMatrixToPage((new Matrix(diff)).powerTransform({ multiplier: 1.5, power: 1.1 }))
-  // addMatrixToPage((new Matrix(diff)).logTransform({ multiplier: 20 }))
+  addMatrixToPage(original.normalize().negative().resize({ width: 256, height: 256 }), 'было')
+  // addMatrixToPage(resized.normalize())
+  addMatrixToPage(resizedFiltered.normalize().negative(), 'стало')
+  // addMatrixToPage(filtered.normalize().negative().resize({ width: 256, height: 256 }), 'стало')
 }
+
+// const fourier = original.copy()
+//   // .resize({ width: 16, height: 16 })
+//   .fourierTransform2D()
+//   // .reverseFourierTransform2D()
+//   .prettifyFourier({ logN: 10 })
+
+// const white = original.copy().addNoise({ method: Matrix.NOISE_METHODS.WHITE_NOISE })
+// const saltAndPepper = original.copy().addNoise({ method: Matrix.NOISE_METHODS.SALT_AND_PEPPER })
+// const mix = original.copy().addNoise({ method: Matrix.NOISE_METHODS.MIX })
+
+// addMatrixToPage(original)
+// addMatrixToPage(saltAndPepper.denoise())
+// addMatrixToPage(white.denoise())
+// addMatrixToPage(mix.denoise())
+
+// const fourier = original.copy()
+//     // .resize({ width: 16, height: 16 })
+//     .fourierTransform2D()
+//     // .reverseFourierTransform2D()
+//     .prettifyFourier({ logN: 10 })
+// addMatrixToPage(fourier)
 
 function matrixDifference (m1, m2) {
-  return (new Matrix(m1)).map((v, r, c) => borders(m1.matrix[r][c] - m2.matrix[r][c]))
+  return m1.copy().map((v, r, c) => borders(m1.matrix[r][c] - m2.matrix[r][c]))
 }
 function matrixAbsDifference (m1, m2) {
-  return (new Matrix(m1)).map((v, r, c) => borders(Math.abs(m1.matrix[r][c] - m2.matrix[r][c])))
+  return m1.copy().map((v, r, c) => borders(Math.abs(m1.matrix[r][c] - m2.matrix[r][c])))
 }
 
-function addMatrixToPage (matrix) {
+function addMatrixToPage (matrix, caption = '') {
   const savedImage = saveImage(matrix.toArray(), { width: matrix.width, height: matrix.height })
-  addImage(savedImage)
+  addImage(savedImage, caption)
 }
 
 function saveImage (arr, { name = 'shite-' + commonCounter(), width, height } = {}) {
@@ -146,75 +164,23 @@ function normalize (data) {
   return data.map(v => borders((v - minValue) * normalizer))
 }
 
-// function matrixElementFn (fn) {
-//   if (!matrix || matrix.length === 0 || matrix[0].length === 0) {
-//     console.error('BITCH, ARE YOU FUCKING WITH ME?', { fn: 'matrixElementFn', matrix })
-//     return []
-//   }
-//   const rows = matrix.length
-//   const columns = matrix[0].length
-//   for (let r = 0; r < rows; r++)
-//     for (let c = 0; c < rows; c++)
-//       fn(matrix[r][c], r, c)
-// }
-
-// function getMatrixData (matrix) {
-//   const rows = matrix.length
-//   const columns = matrix[0].length
-//   return { rows, columns }
-// }
-
-// function rotate (matrix, deg = 90) {
-//   const { rows, columns } = matrix
-//   if (deg === 90) {
-//     return genArray(columns, c => genArray(rows, r => matrix[rows - r - 1][c]))
-//   } else if (deg === 180) {
-
-//   } else if (deg === 270) {
-
-//   } else if (deg === 0 || deg === 360) {
-//     return matrix
-//   } else {
-//     console.log("POSHOL NAHUI, UMNIK EBANIY")
-//     return matrix
-//   }
-// }
-
-// function transposed (matrix) {
-//   const rows = matrix.length
-//   const columns = matrix[0].length
-//   return genArray(columns, c => genArray(rows, r => matrix[r][c]))
-// }
-
-// function arrayToMatrix (arr, { width, height } = {}) {
-//   if (!(arr && width > 0 && height > 0)) {
-//     console.error('THE FUCK ARE YOU GIVING ME?', { fn: 'arrayToMatrix', arr, width, height })
-//     return []
-//   }
-
-//   const result = {}
-//   result.matrix = genArray(height, r => genArray(width, c => arr[r * width + c]))
-//   result.basedArray = arr
-//   result.width = result.columns = width
-//   result.height = result.rows = height
-
-//   return result
-// }
-
-// function matrixToArray (matrix) {
-//   return matrix.flat()
-// }
-
-function addImage (imagePath) {
+function addImage (imagePath, caption = '') {
   const $container = inlineImages
     ? document.createElement('span')
     : document.createElement('div')
+  $container.className = 'image-container'
   if (inlineImages) {
     $container.style.margin = '0.1rem'
   }
   const $img = document.createElement('img')
   $img.src = imagePath
   $container.appendChild($img)
+  if (caption !== '') {
+    const $caption = document.createElement('span')
+    $caption.className = 'caption'
+    $caption.innerHTML = caption
+    $container.appendChild($caption)
+  }
   $plots.appendChild($container)
 }
 
