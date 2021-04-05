@@ -29,6 +29,23 @@ const inlineImages = true
 
 const corePath = './data/img'
 
+async function runShite () {
+  const dir = 'wavelets-color'
+  const color = true
+  const { original } = loadImage('original-1.png', { dir, color })
+  const { original: W90 } = loadImage('90-comp.png', { dir, color })
+  const { original: W95 } = loadImage('95-comp.png', { dir, color })
+  const { original: W99 } = loadImage('99-comp.png', { dir, color })
+
+  addMatrixToPage(original)
+  // addMatrixToPage(W90)
+  // addMatrixToPage(W95)
+  // addMatrixToPage(W99)
+  addMatrixToPage(matrixAbsDifference(original, W90))
+  addMatrixToPage(matrixAbsDifference(original, W95))
+  addMatrixToPage(matrixAbsDifference(original, W99))
+}
+
 ;(async function () {
   const startMs = performance.now()
   await runShite()
@@ -36,124 +53,55 @@ const corePath = './data/img'
   console.log('Current run took', Number((endMs - startMs).toFixed(2)), 'ms.');
 })()
 
-async function runShite () {
-  const fullName = 'some-kek.xcr'
-  // const fullName = 'x-ray.xcr'
+function loadImage (fullName, { dir = '', color = false } = {}) {
   const [fileName, fileExt] = fullName.split('.')
-  const imagePath = `${corePath}/${fullName}`
+  const imagePath = `${corePath}/${dir ? `${dir}/` : ''}${fullName}`
 
-  const sizes = {
-    'x-ray.xcr': { width: 1024, height: 1024 },
-    'some-kek.xcr': { width: 2048, height: 2500 },
+  const result = { fullName, dir, fileName, fileExt, imagePath }
+
+  if (['png', 'jpg', 'jpeg'].includes(fileExt)) {
+    const decoded = decode(fs.readFileSync(imagePath))
+    const { width, height } = decoded
+    const arr = color ? toRGBA(decoded.data) : toPixels(decoded.data)
+    const original = new Matrix(arr, { width, height, color })
+    return { ...result, original }
   }
-  const { width, height } = sizes[fullName]
-  const xcr = await readXcr(`${corePath}/${fileName}.${fileExt}`)
-  // const arr = normalize(xcr.data)
-  const arr = xcr.data
-
-  // const decoded = decode(fs.readFileSync(imagePath))
-  // const { width, height } = decoded
-  // const arr = toPixels(decoded.data)
-
-  // insert your shit here
-
-  const original = new Matrix(arr, { width, height }).rotate(270).normalize()
-
-    // .rotate(270)
-  // const resized = original.copy().resize({ multiplier: 2 })
-
-  const booba = 0.3839999999
-  const bones = 0.2939453125
-
-  const xRay = {
-    max: 0.38654439024,
-    interval: 0.05,
-    m: 16
-  }
-  xRay.weights = Plots.potterBandStopWeights({
-    fc1: xRay.max - xRay.interval,
-    fc2: xRay.max + xRay.interval,
-    m: xRay.m,
-    dt: 1
-  })
-  const filtered = original.copy().mapByRow(r => Plots.convolution(r, xRay.weights))
-    .calculateSides()
-    .mapByRow(row => row.slice(xRay.m, xRay.m + original.columns).map(x => borders(x)))
-    .calculateSides()
-  const resizedFiltered = filtered.copy().resize({ width: 256, height: 256 })
-
-  console.log('Maximum', findMaximum({ plot: true }))
-
-  function findMaximum ({ step = 10, plot = false } = {}) {
-    const spectres = []
-    const maximums = []
-    let prevRowD = null
-    const maxI = !plot ? original.rows : 60
-    for (let i = 0; i < maxI; i += step) {
-      const { matrixRowD, spectre } = processRow(i, prevRowD)
-      prevRowD = matrixRowD
-      const secondHalf = spectre.ys.slice(spectre.ys.length / 2)
-      maximums.push(0.25 + indexOfMax(secondHalf) / (spectre.ys.length * 2))
-      if (plot) spectres.push(spectre)
-    }
-    if (plot) addPlots(spectres)
-    return { spectres, max: getStatistics(maximums) }
-  }
-
-  function processRow (row, prevRowD = null) {
-    const matrixRowD = derivative(original.matrix[row])
-
-    if (prevRowD === null) prevRowD = matrixRowD
-
-    const crossCorr = Plots.crossCorrelation(matrixRowD, prevRowD)
-    const spectre = Plots.spectrumPlotData({ ys: crossCorr, dt: 1, title: `${row + 1}-row` })
-
-    return { matrixRowD, spectre }
-  }
-
-  addMatrixToPage(original.normalize().negative().resize({ width: 256, height: 256 }), 'было')
-  // addMatrixToPage(resized.normalize())
-  addMatrixToPage(resizedFiltered.normalize().negative(), 'стало')
-  // addMatrixToPage(filtered.normalize().negative().resize({ width: 256, height: 256 }), 'стало')
+  
+  return result
 }
-
-// const fourier = original.copy()
-//   // .resize({ width: 16, height: 16 })
-//   .fourierTransform2D()
-//   // .reverseFourierTransform2D()
-//   .prettifyFourier({ logN: 10 })
-
-// const white = original.copy().addNoise({ method: Matrix.NOISE_METHODS.WHITE_NOISE })
-// const saltAndPepper = original.copy().addNoise({ method: Matrix.NOISE_METHODS.SALT_AND_PEPPER })
-// const mix = original.copy().addNoise({ method: Matrix.NOISE_METHODS.MIX })
-
-// addMatrixToPage(original)
-// addMatrixToPage(saltAndPepper.denoise())
-// addMatrixToPage(white.denoise())
-// addMatrixToPage(mix.denoise())
-
-// const fourier = original.copy()
-//     // .resize({ width: 16, height: 16 })
-//     .fourierTransform2D()
-//     // .reverseFourierTransform2D()
-//     .prettifyFourier({ logN: 10 })
-// addMatrixToPage(fourier)
 
 function matrixDifference (m1, m2) {
-  return m1.copy().map((v, r, c) => borders(m1.matrix[r][c] - m2.matrix[r][c]))
+  return m1.copy().map((_, r, c) => borders(m1.matrix[r][c] - m2.matrix[r][c]))
 }
 function matrixAbsDifference (m1, m2) {
-  return m1.copy().map((v, r, c) => borders(Math.abs(m1.matrix[r][c] - m2.matrix[r][c])))
+  if (!m1.color) {
+    return m1.copy().map((_, r, c) => borders(Math.abs(m1.matrix[r][c] - m2.matrix[r][c])))
+  } else {
+    console.log({
+      R: borders(10 * Math.abs(m1.matrix[0][0].R - m2.matrix[0][0].R)),
+      G: borders(10 * Math.abs(m1.matrix[0][0].G - m2.matrix[0][0].G)),
+      B: borders(10 * Math.abs(m1.matrix[0][0].B - m2.matrix[0][0].B)),
+      A: 255
+    })
+    return m1.copy().map((_, r, c) => ({
+      R: borders(Math.abs(m1.matrix[r][c].R - m2.matrix[r][c].R)),
+      G: borders(Math.abs(m1.matrix[r][c].G - m2.matrix[r][c].G)),
+      B: borders(Math.abs(m1.matrix[r][c].B - m2.matrix[r][c].B)),
+      A: 255
+    }))
+  }
 }
 
 function addMatrixToPage (matrix, caption = '') {
-  const savedImage = saveImage(matrix.toArray(), { width: matrix.width, height: matrix.height })
+  const savedImage = saveImage(matrix.toArray(), { ...matrix })
   addImage(savedImage, caption)
 }
 
-function saveImage (arr, { name = 'shite-' + commonCounter(), width, height } = {}) {
+function saveImage (arr, { name = 'shite-' + commonCounter(), width, height, color = false } = {}) {
   const savedImage = `${corePath}/temp/${name}.jpg`
-  fs.writeFileSync(savedImage, Buffer.from(encode(pixelsToValues(arr), [width, height], 'jpg')))
+  const values = color ? toValues(arr) : pixelsToValues(arr)
+  const encoded = encode(values, [width, height], 'jpg')
+  fs.writeFileSync(savedImage, Buffer.from(encoded))
   return savedImage
 }
 
@@ -197,25 +145,17 @@ function pixelsToValues (pixels) {
 
 function toEachColor (RGBA, fn) {
   for (let i = 0; i < RGBA.R.length; i++) {
-    RGBA.R[i] = fn(RGBA.R[i], i, RGBA)
-    RGBA.G[i] = fn(RGBA.G[i], i, RGBA)
-    RGBA.B[i] = fn(RGBA.B[i], i, RGBA)
+    RGBA[i].R = fn(RGBA[i].R, i, RGBA)
+    RGBA[i].G = fn(RGBA[i].G, i, RGBA)
+    RGBA[i].B = fn(RGBA[i].B, i, RGBA)
   }
 }
 
-function nextLetter (current) {
-  if (current === 'R') return 'G'
-  else if (current === 'B') return 'A'
-  else if (current === 'A') return 'R'
-  else if (current === 'G') return 'B'
-}
-
 function toRGBA (imageData) {
-  const result = { R: [], G: [], B: [], A: [] }
+  const result = []
   let current = 'R'
-  for (const value of imageData) {
-    result[current].push(value)
-    current = nextLetter(current)
+  for (let i = 3; i < imageData.length; i += 4) {
+    result.push({ R: imageData[i - 3], G: imageData[i - 2], B: imageData[i - 1], A: imageData[i] })
   }
   return result
 }
@@ -230,11 +170,11 @@ function toPixels (imageData) {
 
 function toValues (RGBA) {
   const result = []
-  for (let i = 0; i < RGBA.R.length; i++) {
-    result.push(RGBA.R[i])
-    result.push(RGBA.G[i])
-    result.push(RGBA.B[i])
-    result.push(RGBA.A[i])
+  for (let i = 0; i < RGBA.length; i++) {
+    result.push(RGBA[i].R)
+    result.push(RGBA[i].G)
+    result.push(RGBA[i].B)
+    result.push(RGBA[i].A)
   }
   return result
 }

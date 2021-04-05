@@ -3,7 +3,7 @@ import { randomJS, average, median } from './statistics.js'
 import { fourier1DTransform, reverseFourier1DTransform } from './lists.js'
 
 export default class Matrix {
-  constructor (base, { width = base.width, height = base.height } = {}) {
+  constructor (base, { width = base.width, height = base.height, color = false } = {}) {
     if (base instanceof Array) {
       this.matrix = genArray(height, r => genArray(width, c => base[r * width + c]))
     } else if (base instanceof Matrix) {
@@ -11,11 +11,12 @@ export default class Matrix {
     } else {
       console.log('A MOZHET TI PIDOR!?')
     }
+    this.color = color
     this.#calculateSides()
   }
 
   copy () {
-    return new Matrix(this)
+    return new Matrix(this, this)
   }
 
   transposed () {
