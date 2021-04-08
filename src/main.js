@@ -30,8 +30,8 @@ const inlineImages = true
 const corePath = './data/img'
 
 async function runShite () {
-  const dir = 'wavelets-color'
-  const color = true
+  const dir = 'fourier'
+  const color = false
   const { original } = loadImage('original-1.png', { dir, color })
   const { original: W90 } = loadImage('90-comp.png', { dir, color })
   const { original: W95 } = loadImage('95-comp.png', { dir, color })
