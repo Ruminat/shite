@@ -37,13 +37,13 @@ async function runShite () {
   const { original: W95 } = loadImage('95-comp.png', { dir, color })
   const { original: W99 } = loadImage('99-comp.png', { dir, color })
 
-  addMatrixToPage(original)
+  addMatrixToPage(original, 'original')
   // addMatrixToPage(W90)
   // addMatrixToPage(W95)
   // addMatrixToPage(W99)
-  addMatrixToPage(matrixAbsDifference(original, W90))
-  addMatrixToPage(matrixAbsDifference(original, W95))
-  addMatrixToPage(matrixAbsDifference(original, W99))
+  addMatrixToPage(matrixAbsDifference(original, W90), 'Some shite')
+  addMatrixToPage(matrixAbsDifference(original, W95), 'Some shite')
+  addMatrixToPage(matrixAbsDifference(original, W99), 'Some shite')
 }
 
 ;(async function () {
@@ -66,7 +66,7 @@ function loadImage (fullName, { dir = '', color = false } = {}) {
     const original = new Matrix(arr, { width, height, color })
     return { ...result, original }
   }
-  
+
   return result
 }
 
