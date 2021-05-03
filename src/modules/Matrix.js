@@ -82,7 +82,7 @@ export default class Matrix {
     return this
   }
 
-  matrixIterator = function* () {
+  *matrixIterator () {
     for (let row = 0; row < this.rows; row++) {
       for (let column = 0; column < this.columns; column++) {
         yield { value: this.matrix[row][column], row, column }
@@ -146,6 +146,10 @@ export default class Matrix {
     return this.map(v => borders(Math.round(v * forward) * backward))
   }
 
+  brighterLines (border, brightestValue = 255) {
+    return this.map(v => v >= border ? brightestValue : v)
+  }
+
   createHistogram (values = 256) {
     const histogram = genArray(values, () => 0)
     for (const { value } of this.matrixIterator()) {
@@ -201,18 +205,43 @@ export default class Matrix {
   }
 
   denoise ({ method = Matrix.DENOISE_METHODS.WINDOW_AVERAGE, windowPadding = 2 } = {}) {
-    const windowWidth = 2 * windowPadding + 1
-    for (let row = windowPadding; row < this.rows - windowPadding; row++) {
-      for (let column = windowPadding; column < this.columns - windowPadding; column++) {
-        const flatWindow = this.#getWindow({ windowPadding, windowWidth, row, column }).flat()
-        if (method === Matrix.DENOISE_METHODS.WINDOW_AVERAGE) {
-          this.matrix[row][column] = average(flatWindow)
-        } else {
-          this.matrix[row][column] = median(flatWindow)
-        }
+    for (const { win, row, column } of this.windowIterator(windowPadding)) {
+      const flatWindow = win.flat()
+      if (method === Matrix.DENOISE_METHODS.WINDOW_AVERAGE) {
+        this.matrix[row][column] = average(flatWindow)
+      } else {
+        this.matrix[row][column] = median(flatWindow)
       }
     }
     return this
+  }
+
+  applyMask (mask, { useBorders = false } = {}) {
+    const windowPadding = Math.floor(mask.length / 2)
+    const result = this.copy()
+    for (const { win, row, column } of this.windowIterator(windowPadding)) {
+      let newValue = 0
+      for (let i = 0; i < win.length; i++)
+        for (let j = 0; j < win[i].length; j++)
+          newValue += mask[i][j] * win[i][j]
+      result.matrix[row][column] = useBorders ? borders(newValue) : newValue
+    }
+    return result
+  }
+
+  *windowIterator (windowPadding = 1) {
+    const windowWidth = 2 * windowPadding + 1
+    for (let row = 0; row < this.rows; row++) {
+      for (let column = 0; column < this.columns; column++) {
+        const win = this.#getWindow({
+          windowPadding,
+          windowWidth,
+          row: borders(row, windowPadding, this.rows - windowPadding - 1),
+          column: borders(column, windowPadding, this.columns - windowPadding - 1)
+        })
+        yield ({ row, column, win })
+      }
+    }
   }
 
   #getWindow ({ windowPadding, windowWidth, row, column }) {
@@ -272,14 +301,14 @@ export default class Matrix {
     return this.mapByRow(
       row => Plots.convolution(row, weights)
         .slice(m, m + row.length)
-        .map(v => borders(v))
     )
-  }  
+  }
 
   applyPotterFilter (weights) {
     return this.applyPotterFilterByRows(weights)
       .transposed()
       .applyPotterFilterByRows(weights)
       .transposed()
+      .map(v => borders(v))
   }
 }

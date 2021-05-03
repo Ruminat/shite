@@ -166,7 +166,7 @@ export default class Plots {
     else return Math.sqrt((realPart**2 + imaginaryPart**2))
   }
   // Возвращает данные для построения графика спектра.
-  static spectrumPlotData ({ ys = [], dt = 0.1, title = '', norm = false } = {}) {
+  static spectrumPlotData ({ ys = [], dt = 1, title = '', norm = false } = {}) {
     const ns = ys.map((_, i) => i + 1)
     const len = ys.length
     const df = 1 / (dt * len)
@@ -309,7 +309,7 @@ export default class Plots {
   static correlationCoefficient ({ xs = [], ys = [] } = {}) {
     if (xs.length === 0) xs = ys.map((_, i) => i + 1)
     if (ys.length === 0 || xs.length !== ys.length) return null
-      
+
     const xsV = variance(xs)
     const ysV = variance(ys)
     const xsAvg = average(xs)

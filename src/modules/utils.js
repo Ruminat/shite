@@ -52,5 +52,7 @@ export function commonCounter () {
 }
 
 export function borders (value, from = 0, to = 255) {
-  return value > to ? to : value < from ? from : value;
+  return value > to
+    ? to
+    : value < from ? from : value;
 }

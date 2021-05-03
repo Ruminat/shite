@@ -16,6 +16,7 @@ import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
 import Matrix from './modules/Matrix.js'
 import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
+import { masks } from './modules/consts.js'
 
 // const _ = require('lodash')
 
@@ -29,21 +30,24 @@ const inlineImages = true
 
 const corePath = './data/img'
 
+// LowPass filter
 async function runShite () {
   const dir = '.'
   const color = false
-  const { original } = loadImage('grace.jpg', { dir, color })
-  const LPweights = Plots.potterLowPassWeights({ m: 64, dt: 1, fc: 0.08 })
+  const { original } = loadImage('MODELimage.jpg', { dir, color })
+  const LPweights = Plots.potterLowPassWeights({ m: 128, dt: 1, fc: 0.05 })
   const LPfilter = original.copy().applyPotterFilter(LPweights)
-    .calculateSides()
-    .normalize()
+    // .normalize()
+  const diff = matrixDifference(original, LPfilter)
+    .map(v => borders(Math.abs(v)))
+    // .pixelize(2)
+    // .negative()
 
-  addPlots([Plots.spectrumPlotData({ ys: LPweights, dt: 1 })])
-
+  addPlots([Plots.spectrumPlotData({ ys: LPweights })])
 
   addMatrixToPage(original, 'original')
   addMatrixToPage(LPfilter, 'low pass filter')
-  addMatrixToPage(matrixDifference(original, LPfilter).normalize(), 'low pass filter')
+  addMatrixToPage(diff, 'low pass filter diff')
 }
 
 ;(async function () {
@@ -70,6 +74,15 @@ function loadImage (fullName, { dir = '', color = false } = {}) {
   return result
 }
 
+function matrixSumAbs (m1, m2) {
+  return m1.copy().map((_, r, c) => borders(Math.abs(m1.matrix[r][c]) + Math.abs(m2.matrix[r][c])))
+}
+function matrixSumSq (m1, m2) {
+  return m1.copy().map((_, r, c) => borders(Math.sqrt(m1.matrix[r][c]**2 + m2.matrix[r][c]**2)))
+}
+function matrixSum (m1, m2) {
+  return m1.copy().map((_, r, c) => borders(m1.matrix[r][c] + m2.matrix[r][c]))
+}
 function matrixDifference (m1, m2) {
   return m1.copy().map((_, r, c) => borders(m1.matrix[r][c] - m2.matrix[r][c]))
 }
