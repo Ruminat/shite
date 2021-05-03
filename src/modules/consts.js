@@ -16,6 +16,14 @@ export const masks = {
   ]
 }
 
+export const structuralElements = {
+  E: [
+    [255, 255, 255],
+    [255, 255, 255],
+    [255, 255, 255],
+  ],
+}
+
 
 // gradientHorizontal: [
 //   [0, 0, 0],

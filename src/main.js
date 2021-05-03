@@ -14,9 +14,10 @@ import { commonCounter, borders, genArray } from './modules/utils.js'
 import { readXcr } from './modules/files.js'
 import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
+import Morphology from './modules/Morphology.js'
 import Matrix from './modules/Matrix.js'
 import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
-import { masks } from './modules/consts.js'
+import { masks, structuralElements } from './modules/consts.js'
 
 // const _ = require('lodash')
 
@@ -30,24 +31,35 @@ const inlineImages = true
 
 const corePath = './data/img'
 
-// LowPass filter
+
+// filters
 async function runShite () {
   const dir = '.'
   const color = false
   const { original } = loadImage('MODELimage.jpg', { dir, color })
-  const LPweights = Plots.potterLowPassWeights({ m: 128, dt: 1, fc: 0.05 })
-  const LPfilter = original.copy().applyPotterFilter(LPweights)
+  const HPweights = Plots.potterHighPassWeights({ m: 4, dt: 1, fc: 0.05 })
+  const HPfilter = original.copy().applyPotterFilter(HPweights)
     // .normalize()
+  const LPweights = Plots.potterLowPassWeights({ m: 4, dt: 1, fc: 0.05 })
+  const LPfilter = original.copy().applyPotterFilter(LPweights)
+
   const diff = matrixDifference(original, LPfilter)
-    .map(v => borders(Math.abs(v)))
+    // .map(v => borders(Math.abs(v)))
     // .pixelize(2)
     // .negative()
 
-  addPlots([Plots.spectrumPlotData({ ys: LPweights })])
+  addPlots([Plots.spectrumPlotData({ ys: HPweights })])
+
+  const bubba = HPfilter.copy().map((v, r, c) => borders(Math.sqrt(v**2 + 16 * diff.matrix[r][c]**2)))
 
   addMatrixToPage(original, 'original')
-  addMatrixToPage(LPfilter, 'low pass filter')
-  addMatrixToPage(diff, 'low pass filter diff')
+  addMatrixToPage(HPfilter.copy().map(v => borders(4 * v)), 'high pass filter')
+  addMatrixToPage(diff.map(v => borders(Math.abs(v))), 'low pass filter diff')
+  addMatrixToPage(bubba.brighterLines(20), 'low pass filter diff')
+}
+
+function toBlackAndWhite (matrix, { border = 128 } = {}) {
+  return matrix.map(v => v < border ? 0 : 255)
 }
 
 ;(async function () {

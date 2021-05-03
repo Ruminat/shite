@@ -309,6 +309,6 @@ export default class Matrix {
       .transposed()
       .applyPotterFilterByRows(weights)
       .transposed()
-      .map(v => borders(v))
+      // .map(v => borders(v))
   }
 }
