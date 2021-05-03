@@ -30,20 +30,20 @@ const inlineImages = true
 const corePath = './data/img'
 
 async function runShite () {
-  const dir = 'fourier'
+  const dir = '.'
   const color = false
-  const { original } = loadImage('original-1.png', { dir, color })
-  const { original: W90 } = loadImage('90-comp.png', { dir, color })
-  const { original: W95 } = loadImage('95-comp.png', { dir, color })
-  const { original: W99 } = loadImage('99-comp.png', { dir, color })
+  const { original } = loadImage('grace.jpg', { dir, color })
+  const LPweights = Plots.potterLowPassWeights({ m: 64, dt: 1, fc: 0.08 })
+  const LPfilter = original.copy().applyPotterFilter(LPweights)
+    .calculateSides()
+    .normalize()
+
+  addPlots([Plots.spectrumPlotData({ ys: LPweights, dt: 1 })])
+
 
   addMatrixToPage(original, 'original')
-  // addMatrixToPage(W90)
-  // addMatrixToPage(W95)
-  // addMatrixToPage(W99)
-  addMatrixToPage(matrixAbsDifference(original, W90), 'Some shite')
-  addMatrixToPage(matrixAbsDifference(original, W95), 'Some shite')
-  addMatrixToPage(matrixAbsDifference(original, W99), 'Some shite')
+  addMatrixToPage(LPfilter, 'low pass filter')
+  addMatrixToPage(matrixDifference(original, LPfilter).normalize(), 'low pass filter')
 }
 
 ;(async function () {

@@ -240,7 +240,7 @@ export default class Plots {
     return result
   }
   // Веса Ормсби-Поттера (ФНЧ, Low Pass Filter).
-  static potterWeights ({ fc = 120, m = 256, dt = 0.001 } = {}) {
+  static potterLowPassWeights ({ fc = 120, m = 256, dt = 0.001 } = {}) {
     let fact = 2 * fc * dt
     const weights = [fact]
     fact *= Math.PI
@@ -267,19 +267,19 @@ export default class Plots {
   }
   // Веса Ормсби-Поттера (ФВЧ, High Pass Filter).
   static potterHighPassWeights ({ fc = 120, m = 256, dt = 0.001 } = {}) {
-    const weights = Plots.potterWeights({ fc, m, dt })
+    const weights = Plots.potterLowPassWeights({ fc, m, dt })
     return weights.map((w, i) => i === m ? 1 - w : -w)
   }
   // Веса Ормсби-Поттера (ПФ, Band Pass Filter).
   static potterBandPassWeights ({ fc1 = 60, fc2 = 80, m = 256, dt = 0.001 } = {}) {
-    const weights1 = Plots.potterWeights({ fc: fc1, m, dt })
-    const weights2 = Plots.potterWeights({ fc: fc2, m, dt })
+    const weights1 = Plots.potterLowPassWeights({ fc: fc1, m, dt })
+    const weights2 = Plots.potterLowPassWeights({ fc: fc2, m, dt })
     return weights2.map((w, i) => w - weights1[i])
   }
   // Веса Ормсби-Поттера (РФ, Band Stop Filter).
   static potterBandStopWeights ({ fc1 = 60, fc2 = 80, m = 256, dt = 0.001 } = {}) {
-    const weights1 = Plots.potterWeights({ fc: fc1, m, dt })
-    const weights2 = Plots.potterWeights({ fc: fc2, m, dt })
+    const weights1 = Plots.potterLowPassWeights({ fc: fc1, m, dt })
+    const weights2 = Plots.potterLowPassWeights({ fc: fc2, m, dt })
     return weights1.map((w, i) => i === m ? 1 - weights2[i] + w : w - weights2[i])
   }
   // Линейная регрессия.

@@ -1,6 +1,7 @@
 import { genArray, borders } from './utils.js'
 import { randomJS, average, median } from './statistics.js'
 import { fourier1DTransform, reverseFourier1DTransform } from './lists.js'
+import Plots from './Plots.js'
 
 export default class Matrix {
   constructor (base, { width = base.width, height = base.height, color = false } = {}) {
@@ -264,5 +265,21 @@ export default class Matrix {
       }
     }
     return this
+  }
+
+  applyPotterFilterByRows (weights) {
+    const m = Math.floor(weights.length / 2)
+    return this.mapByRow(
+      row => Plots.convolution(row, weights)
+        .slice(m, m + row.length)
+        .map(v => borders(v))
+    )
+  }  
+
+  applyPotterFilter (weights) {
+    return this.applyPotterFilterByRows(weights)
+      .transposed()
+      .applyPotterFilterByRows(weights)
+      .transposed()
   }
 }
