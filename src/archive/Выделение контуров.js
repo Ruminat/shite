@@ -54,7 +54,7 @@ async function runShite () {
   const color = false
   const { original } = loadImage('MODELimage.jpg', { dir, color })
   const blackAndWhite = toBlackAndWhite(original, { border: 198 })
-  const fuckedUp = Morphology.dilation(blackAndWhite, structuralElements.E)
+  const fuckedUp = Morphology.erosion(blackAndWhite, structuralElements.E)
 
   addMatrixToPage(blackAndWhite)
   addMatrixToPage(fuckedUp)
