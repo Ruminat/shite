@@ -2,6 +2,7 @@ import { genArray, borders } from './utils.js'
 import { randomJS, average, median } from './statistics.js'
 import { fourier1DTransform, reverseFourier1DTransform } from './lists.js'
 import Plots from './Plots.js'
+import { masks } from './consts.js'
 
 export default class Matrix {
   constructor (base, { width = base.width, height = base.height, color = false } = {}) {
@@ -227,6 +228,12 @@ export default class Matrix {
       result.matrix[row][column] = useBorders ? borders(newValue) : newValue
     }
     return result
+  }
+
+  gradient () {
+    const horizontal = this.applyMask(masks.gradientHorizontal)
+    const vertical = this.applyMask(masks.gradientVertical)
+    return this.map((_, r, c) => borders(Math.sqrt(horizontal.matrix[r][c]**2 + vertical.matrix[r][c]**2)))
   }
 
   *windowIterator (windowPadding = 1) {

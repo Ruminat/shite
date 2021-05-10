@@ -11,13 +11,14 @@ import {
   randomJS
 } from './modules/statistics.js'
 import { commonCounter, borders, genArray } from './modules/utils.js'
-import { readXcr } from './modules/files.js'
+import { readFileInt16, readXcr } from './modules/files.js'
 import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
 import Morphology from './modules/Morphology.js'
 import Matrix from './modules/Matrix.js'
 import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
 import { masks, structuralElements } from './modules/consts.js'
+import { Pics } from './modules/Pics.js'
 
 // const _ = require('lodash')
 
@@ -34,15 +35,36 @@ const corePath = './data/img'
 
 // Morphology (dilation)
 async function runShite () {
-  const dir = '.'
+  const dir = 'segmentation'
   const color = false
-  const { original } = loadImage('MODELimage.jpg', { dir, color })
-  const blackAndWhite = toBlackAndWhite(original, { border: 198 })
-  const fuckedUp = Morphology.dilation(blackAndWhite, structuralElements.E)
+  const { original: original1 } = await loadImageFromPics(Pics.segmentation.brainH)
+  const { original: original2 } = await loadImageFromPics(Pics.segmentation.brainV)
+  const { original: original3 } = await loadImageFromPics(Pics.segmentation.spineH)
+  const { original: original4 } = await loadImageFromPics(Pics.segmentation.spineV)
 
-  addMatrixToPage(blackAndWhite)
-  addMatrixToPage(fuckedUp)
-  addMatrixToPage(matrixAbsDifference(blackAndWhite, fuckedUp))
+  const pics = [original1, original2, original3, original4].map(o => o.normalize())
+
+  function process (pic) {
+    return pic.copy()
+      .map(v => v < 10 ? 0 : v)
+      .histogramEqualization()
+  }
+
+  function contour (pic) {
+    return pic.copy().gradient()
+  }
+
+  for (const pic of pics) {
+    const c = contour(pic).map(v => 0.5 * v)
+    const a = process(pic)
+    const b = matrixSum(process(pic), c)
+    addMatrixToPage(pic, 'оригинал')
+    addMatrixToPage(c, 'контур')
+    addMatrixToPage(a, 'эквализированный')
+    addMatrixToPage(b, 'результат')
+    addMatrixToPage(matrixAbsDifference(a, b), 'результат − эквализированный')
+    addLineBreak()
+  }
 }
 
 function toBlackAndWhite (matrix, { border = 128 } = {}) {
@@ -56,7 +78,11 @@ function toBlackAndWhite (matrix, { border = 128 } = {}) {
   console.log('Current run took', Number((endMs - startMs).toFixed(2)), 'ms.');
 })()
 
-function loadImage (fullName, { dir = '', color = false } = {}) {
+async function loadImageFromPics (imgObject) {
+  return await loadImage(imgObject.filename, imgObject)
+}
+
+async function loadImage (fullName, { dir = '', color = false, w = 256, h = w } = {}) {
   const [fileName, fileExt] = fullName.split('.')
   const imagePath = `${corePath}/${dir ? `${dir}/` : ''}${fullName}`
 
@@ -67,6 +93,10 @@ function loadImage (fullName, { dir = '', color = false } = {}) {
     const { width, height } = decoded
     const arr = color ? toRGBA(decoded.data) : toPixels(decoded.data)
     const original = new Matrix(arr, { width, height, color })
+    return { ...result, original }
+  } else if (fileExt === 'bin') {
+    const arr = await readFileInt16(imagePath)
+    const original = new Matrix(arr, { width: w, height: h })
     return { ...result, original }
   }
 
@@ -122,6 +152,10 @@ function normalize (data) {
   const maxValue = max(data)
   const normalizer = 256 * (1 / (maxValue - minValue))
   return data.map(v => borders((v - minValue) * normalizer))
+}
+
+function addLineBreak () {
+  $plots.appendChild(document.createElement('br'))
 }
 
 function addImage (imagePath, caption = '') {

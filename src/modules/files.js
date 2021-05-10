@@ -1,6 +1,15 @@
 const fs = require('fs')
 const fsPromises = fs.promises
 
+export async function readFileInt16 (filename) {
+  const buffer = await fsPromises.readFile(filename)
+  const result = []
+  for (let i = 0; i < buffer.length; i += 2) {
+    result.push(buffer.readInt16LE(i));
+  }
+  return result
+}
+
 export async function readFileFloat32 (filename) {
   const buffer = await fsPromises.readFile(filename)
   const result = []
