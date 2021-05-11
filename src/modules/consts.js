@@ -16,22 +16,13 @@ export const masks = {
   ]
 }
 
+export const ELEMENT_ZERO = 0
+export const ELEMENT_ONE = 255
+
 export const structuralElements = {
   E: [
-    [255, 255, 255],
-    [255, 255, 255],
-    [255, 255, 255],
+    [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
+    [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
+    [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
   ],
 }
-
-
-// gradientHorizontal: [
-//   [0, 0, 0],
-//   [0, -1, 0],
-//   [0, 0, 1],
-// ],
-// gradientVertical: [
-//   [0, 0, 0],
-//   [0, 0, -1],
-//   [0, 1, 0],
-// ]
