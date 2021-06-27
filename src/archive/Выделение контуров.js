@@ -60,3 +60,37 @@ async function runShite () {
   addMatrixToPage(fuckedUp)
   addMatrixToPage(matrixAbsDifference(blackAndWhite, fuckedUp))
 }
+
+// Эквализация
+async function runShite () {
+  const dir = 'segmentation'
+  const color = false
+  const { original: original1 } = await loadImageFromPics(Pics.segmentation.brainH)
+  const { original: original2 } = await loadImageFromPics(Pics.segmentation.brainV)
+  const { original: original3 } = await loadImageFromPics(Pics.segmentation.spineH)
+  const { original: original4 } = await loadImageFromPics(Pics.segmentation.spineV)
+
+  const pics = [original1, original2, original3, original4].map(o => o.normalize())
+
+  function process (pic) {
+    return pic.copy()
+      .map(v => v < 10 ? 0 : v)
+      .histogramEqualization()
+  }
+
+  function contour (pic) {
+    return pic.copy().gradient()
+  }
+
+  for (const pic of pics) {
+    const c = contour(pic).map(v => 0.5 * v)
+    const a = process(pic)
+    const b = matrixSum(process(pic), c)
+    addMatrixToPage(pic, 'оригинал')
+    addMatrixToPage(c, 'контур')
+    addMatrixToPage(a, 'эквализированный')
+    addMatrixToPage(b, 'результат')
+    addMatrixToPage(matrixAbsDifference(a, b), 'результат − эквализированный')
+    addLineBreak()
+  }
+}

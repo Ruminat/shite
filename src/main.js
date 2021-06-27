@@ -16,6 +16,7 @@ import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
 import Morphology from './modules/Morphology.js'
 import Matrix from './modules/Matrix.js'
+import Matricies from './modules/Matricies.js'
 import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
 import { masks, structuralElements } from './modules/consts.js'
 import { Pics } from './modules/Pics.js'
@@ -35,39 +36,34 @@ const corePath = './data/img'
 
 // Morphology (dilation)
 async function runShite () {
-  const dir = 'segmentation'
-  const color = false
-  const { original: original1 } = await loadImageFromPics(Pics.segmentation.brainH)
-  const { original: original2 } = await loadImageFromPics(Pics.segmentation.brainV)
-  const { original: original3 } = await loadImageFromPics(Pics.segmentation.spineH)
-  const { original: original4 } = await loadImageFromPics(Pics.segmentation.spineV)
+  const { original } = await loadImageFromPics(Pics.segmentation.stones)
+  const denoised = original.copy().denoise({ method: Matrix.DENOISE_METHODS.WINDOW_MEDIAN, windowPadding: 1 })
+  const gradient = dropLowerThanBorder(getGradient(denoised, 30))
+  const laplace = denoised.applyMask(masks.laplace, { useBorders: true })
+  const multiplication = Matricies.multiply(denoised, gradient)
+  const masked = Matricies.withMask(original, multiplication)
 
-  const pics = [original1, original2, original3, original4].map(o => o.normalize())
-
-  function process (pic) {
-    return pic.copy()
-      .map(v => v < 10 ? 0 : v)
-      .histogramEqualization()
-  }
-
-  function contour (pic) {
-    return pic.copy().gradient()
-  }
-
-  for (const pic of pics) {
-    const c = contour(pic).map(v => 0.5 * v)
-    const a = process(pic)
-    const b = matrixSum(process(pic), c)
-    addMatrixToPage(pic, 'оригинал')
-    addMatrixToPage(c, 'контур')
-    addMatrixToPage(a, 'эквализированный')
-    addMatrixToPage(b, 'результат')
-    addMatrixToPage(matrixAbsDifference(a, b), 'результат − эквализированный')
-    addLineBreak()
-  }
+  displayMatrix(original, 'Оригинал')
+  displayMatrix(denoised, 'Убрали шум')
+  displayMatrix(gradient, 'Градиент')
+  displayMatrix(laplace, 'Лапласиан')
+  displayMatrix(multiplication, 'Оригинал * Градиент')
+  displayMatrix(masked, 'После маски')
+  displayMatrix(toBlackAndWhite(Matricies.add(original, masked)), 'После маски')
+  // displayMatrix(getGradient(Matricies.add(original, masked)), 'После маски')
 }
 
-function toBlackAndWhite (matrix, { border = 128 } = {}) {
+function getGradient (matrix) {
+  const horizontal = matrix.applyMask(masks.gradientHorizontal)
+  const vertical = matrix.applyMask(masks.gradientVertical)
+  return matrixSumSq(horizontal, vertical)
+}
+
+function dropLowerThanBorder (matrix, border = 128) {
+  return matrix.map(v => v < border ? 0 : v)
+}
+
+function toBlackAndWhite (matrix, border = 128) {
   return matrix.map(v => v < border ? 0 : 255)
 }
 
@@ -103,6 +99,9 @@ async function loadImage (fullName, { dir = '', color = false, w = 256, h = w } 
   return result
 }
 
+function multiplyMatricies (m1, m2) {
+
+}
 function matrixSumAbs (m1, m2) {
   return m1.copy().map((_, r, c) => borders(Math.abs(m1.matrix[r][c]) + Math.abs(m2.matrix[r][c])))
 }
@@ -134,7 +133,7 @@ function matrixAbsDifference (m1, m2) {
   }
 }
 
-function addMatrixToPage (matrix, caption = '') {
+function displayMatrix (matrix, caption = '') {
   const savedImage = saveImage(matrix.toArray(), { ...matrix })
   addImage(savedImage, caption)
 }
