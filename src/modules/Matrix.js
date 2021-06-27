@@ -2,7 +2,7 @@ import { genArray, borders } from './utils.js'
 import { randomJS, average, median } from './statistics.js'
 import { fourier1DTransform, reverseFourier1DTransform } from './lists.js'
 import Plots from './Plots.js'
-import { masks } from './consts.js'
+import { masks } from './definitions.js'
 
 export default class Matrix {
   constructor (base, { width = base.width, height = base.height, color = false } = {}) {

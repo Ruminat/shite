@@ -94,3 +94,29 @@ async function runShite () {
     addLineBreak()
   }
 }
+
+/*
+  Задание его ебучее с камнями нахуй
+*/
+
+// Тестирую градиент, лапласиан + накладываю это на оригинал
+async function runShite () {
+  const { original } = await loadImageFromPics(IMAGES.segmentation.stones)
+  const denoised = original.copy().denoise({ method: Matrix.DENOISE_METHODS.WINDOW_MEDIAN, windowPadding: 1 })
+  const gradient = dropLowerThanBorder(getGradient(denoised, 30))
+  const laplace = denoised.applyMask(masks.laplace, { useBorders: true }).map(v => v > 8 ? borders(v * 10) : 0)
+  const multiplication = Matricies.multiply(denoised, gradient)
+  const masked = Matricies.withMask(denoised, multiplication)
+
+  const jija = toBlackAndWhite(Matricies.add(denoised, masked))
+
+  displayMatrix(original, 'Оригинал')
+  displayMatrix(denoised, 'Убрали шум')
+  displayMatrix(gradient, 'Градиент')
+  displayMatrix(laplace, 'Лапласиан')
+  displayMatrix(multiplication, 'Оригинал * Градиент')
+  displayMatrix(masked, 'После маски')
+  displayMatrix(jija, 'После маски')
+  displayMatrix(Matricies.withMask(original, jija), 'После маски')
+  // displayMatrix(getGradient(Matricies.add(original, masked)), 'После маски')
+}

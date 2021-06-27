@@ -10,16 +10,14 @@ import {
   statisticsTeX,
   randomJS
 } from './modules/statistics.js'
-import { commonCounter, borders, genArray } from './modules/utils.js'
+import { generateUID, borders } from './modules/utils.js'
 import { readFileInt16, readXcr } from './modules/files.js'
-import UID from './modules/UID.js'
 import Plots from './modules/Plots.js'
 import Morphology from './modules/Morphology.js'
 import Matrix from './modules/Matrix.js'
 import Matricies from './modules/Matricies.js'
 import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
-import { masks, structuralElements } from './modules/consts.js'
-import { Pics } from './modules/Pics.js'
+import { masks, IMAGES } from './modules/definitions.js'
 
 // const _ = require('lodash')
 
@@ -34,23 +32,25 @@ const inlineImages = true
 const corePath = './data/img'
 
 
-// Morphology (dilation)
+// Тестирую градиент, лапласиан + накладываю это на оригинал
 async function runShite () {
-  const { original } = await loadImageFromPics(Pics.segmentation.stones)
-  const denoised = original.copy().denoise({ method: Matrix.DENOISE_METHODS.WINDOW_MEDIAN, windowPadding: 1 })
-  const gradient = dropLowerThanBorder(getGradient(denoised, 30))
-  const laplace = denoised.applyMask(masks.laplace, { useBorders: true })
-  const multiplication = Matricies.multiply(denoised, gradient)
-  const masked = Matricies.withMask(original, multiplication)
+  const { original } = await loadImageFromPics(IMAGES.segmentation.stonesSegment)
+  const base = original.copy()
+  const gradient = dropLowerThanBorder(getGradient(base, 30))
+  // const laplace = base.applyMask(masks.laplace, { useBorders: true }).map(v => v > 8 ? borders(4 * v) : 0)
+  const multiplication = Matricies.multiply(base, gradient)
+  const masked = Matricies.withMask(base, multiplication)
+
+  const jija = toBlackAndWhite(Matricies.add(base, masked))
 
   displayMatrix(original, 'Оригинал')
-  displayMatrix(denoised, 'Убрали шум')
+  displayMatrix(base, 'База')
   displayMatrix(gradient, 'Градиент')
-  displayMatrix(laplace, 'Лапласиан')
+  // displayMatrix(laplace, 'Лапласиан')
   displayMatrix(multiplication, 'Оригинал * Градиент')
   displayMatrix(masked, 'После маски')
-  displayMatrix(toBlackAndWhite(Matricies.add(original, masked)), 'После маски')
-  // displayMatrix(getGradient(Matricies.add(original, masked)), 'После маски')
+  displayMatrix(jija, 'После маски')
+  displayMatrix(Matricies.withMask(base, jija), 'После маски')
 }
 
 function getGradient (matrix) {
@@ -68,6 +68,7 @@ function toBlackAndWhite (matrix, border = 128) {
 }
 
 ;(async function () {
+  console.log("Calculating...");
   const startMs = performance.now()
   await runShite()
   const endMs = performance.now()
@@ -138,7 +139,7 @@ function displayMatrix (matrix, caption = '') {
   addImage(savedImage, caption)
 }
 
-function saveImage (arr, { name = 'shite-' + commonCounter(), width, height, color = false } = {}) {
+function saveImage (arr, { name = 'shite-' + generateUID(), width, height, color = false } = {}) {
   const savedImage = `${corePath}/temp/${name}.jpg`
   const values = color ? toValues(arr) : pixelsToValues(arr)
   const encoded = encode(values, [width, height], 'jpg')
@@ -260,7 +261,7 @@ function addPlots (plots) {
   $plots.appendChild($plotsBlock)
 
   for (const { data = null, xs = [], ys = [], title = '', type = 'line' } of plots) {
-    const id = `plotly-${UID()}`
+    const id = `plotly-${generateUID()}`
     const $plot = document.createElement('div')
     $plot.id = id
     $plot.className = 'plot'

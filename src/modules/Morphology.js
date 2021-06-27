@@ -1,5 +1,5 @@
 import { borders } from './utils.js'
-import { ELEMENT_ZERO, ELEMENT_ONE } from './consts.js'
+import { ELEMENT_ZERO, ELEMENT_ONE } from './definitions.js'
 
 export default class Morphology {
   static erosion (matrix, element) {

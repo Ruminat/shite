@@ -9,7 +9,7 @@ import {
   statisticsTeX
 } from './modules/statistics.js'
 import { delay, genArray } from './modules/utils.js'
-import UID from './modules/UID.js'
+import { generateUID } from './modules/utils.js'
 import Plots from './modules/Plots.js'
 
 const fs = require('fs')
@@ -109,7 +109,7 @@ function addPlots (plots) {
   $plots.appendChild($plotsBlock)
 
   for (const { data = null, xs = [], ys = [], title = '' } of plots) {
-    const id = `plotly-${UID()}`
+    const id = `plotly-${generateUID()}`
     const $plot = document.createElement('div')
     $plot.id = id
     $plot.className = 'plot'
