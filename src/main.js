@@ -13,11 +13,11 @@ import {
 import { generateUID, borders } from './modules/utils.js'
 import { readFileInt16, readXcr } from './modules/files.js'
 import Plots from './modules/Plots.js'
-import Morphology from './modules/Morphology.js'
 import Matrix from './modules/Matrix.js'
 import Matricies from './modules/Matricies.js'
-import { derivative, indexOfMax, fourier1DTransform, reverseFourier1DTransform } from './modules/lists.js'
-import { masks, IMAGES } from './modules/definitions.js'
+import { masks, IMAGES, structuralElements } from './modules/definitions.js'
+import Morphology from './modules/Morphology.js'
+import { getConnectedRegions } from './modules/algs/getConnectedRegions.js'
 
 // const _ = require('lodash')
 
@@ -31,26 +31,38 @@ const inlineImages = true
 
 const corePath = './data/img'
 
+// const { original } = await loadImageFromPics(IMAGES.segmentation.stonesSegment)
+// for (let i = 6; i < 12; i++) {
+//   for (let j = 6; j < 12; j++) {
+//     original.matrix[i][j] = 255
+//   }
+// }
 
 // Тестирую градиент, лапласиан + накладываю это на оригинал
 async function runShite () {
-  const { original } = await loadImageFromPics(IMAGES.segmentation.stonesSegment)
-  const base = original.copy()
-  const gradient = dropLowerThanBorder(getGradient(base, 30))
-  // const laplace = base.applyMask(masks.laplace, { useBorders: true }).map(v => v > 8 ? borders(4 * v) : 0)
-  const multiplication = Matricies.multiply(base, gradient)
-  const masked = Matricies.withMask(base, multiplication)
+  const MAX_SIZE = 6
 
-  const jija = toBlackAndWhite(Matricies.add(base, masked))
+  const { original } = await loadImageFromPics(IMAGES.segmentation.stones)
+  const base = original.copy()
+  const binary = toBlackAndWhite(base, 112)
+
+  const avg = original.reduce((acc, v) => acc + v) / (original.width * original.height)
+  console.log("avg is", avg)
+
+  const erosed = Morphology.erosion(binary)
+  const diff = Matricies.substractAbs(binary, erosed)
+
+  const stones = getConnectedRegions(binary, diff, MAX_SIZE)
 
   displayMatrix(original, 'Оригинал')
-  displayMatrix(base, 'База')
-  displayMatrix(gradient, 'Градиент')
-  // displayMatrix(laplace, 'Лапласиан')
-  displayMatrix(multiplication, 'Оригинал * Градиент')
-  displayMatrix(masked, 'После маски')
-  displayMatrix(jija, 'После маски')
-  displayMatrix(Matricies.withMask(base, jija), 'После маски')
+  displayMatrix(binary, 'Бинаризация')
+  displayMatrix(diff, 'Бинаризация — эрозия')
+  displayMatrix(stones, 'Найденные камни')
+  displayMatrix(Matricies.add(pale(original), pale(stones)), 'Найденные камни на фоне оригинала')
+}
+
+function pale (matrix) {
+  return matrix.copy().map(v => v / 2)
 }
 
 function getGradient (matrix) {
@@ -60,11 +72,11 @@ function getGradient (matrix) {
 }
 
 function dropLowerThanBorder (matrix, border = 128) {
-  return matrix.map(v => v < border ? 0 : v)
+  return matrix.copy().map(v => v < border ? 0 : v)
 }
 
 function toBlackAndWhite (matrix, border = 128) {
-  return matrix.map(v => v < border ? 0 : 255)
+  return matrix.copy().map(v => v < border ? 0 : 255)
 }
 
 ;(async function () {

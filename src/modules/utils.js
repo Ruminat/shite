@@ -52,6 +52,12 @@ export function borders (value, from = 0, to = 255) {
     : value < from ? from : value;
 }
 
+export function clamp (value, from = 0, to = 255) {
+  return value > to
+    ? to
+    : value < from ? from : value;
+}
+
 let uid = 1
 export function generateUID () {
   return uid++

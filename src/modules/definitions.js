@@ -1,3 +1,20 @@
+export class Point {
+  constructor ({ row, column, x, y } = {}) {
+    this.x = x ?? column
+    this.y = y ?? row
+    this.column = column ?? x
+    this.row = row ?? y
+  }
+
+  isEqual (point) {
+    return this.row === point.row && this.column === point.column
+  }
+
+  distanceTo (point) {
+    return Math.sqrt((this.x - point.x)**2 + (this.y - point.y)**2)
+  }
+}
+
 export const masks = {
   laplace: [
     [0, -1, 0],
@@ -24,6 +41,11 @@ export const structuralElements = {
     [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
     [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
     [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
+  ],
+  CROSS: [
+    [ELEMENT_ZERO, ELEMENT_ONE, ELEMENT_ZERO],
+    [ELEMENT_ONE, ELEMENT_ONE, ELEMENT_ONE],
+    [ELEMENT_ZERO, ELEMENT_ONE, ELEMENT_ZERO],
   ],
 }
 

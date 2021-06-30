@@ -1,8 +1,8 @@
 import { borders } from './utils.js'
-import { ELEMENT_ZERO, ELEMENT_ONE } from './definitions.js'
+import { ELEMENT_ZERO, ELEMENT_ONE, structuralElements } from './definitions.js'
 
 export default class Morphology {
-  static erosion (matrix, element) {
+  static erosion (matrix, element = structuralElements.E) {
     const windowPadding = Math.floor(element.length / 2)
     const result = matrix.copy().map(v => ELEMENT_ZERO)
     for (const { win, row, column } of matrix.windowIterator(windowPadding)) {
@@ -19,7 +19,7 @@ export default class Morphology {
     }
   }
 
-  static dilation (matrix, element) {
+  static dilation (matrix, element = structuralElements.E) {
     const windowPadding = Math.floor(element.length / 2)
     const result = matrix.copy()
     for (const { win, row, column } of matrix.windowIterator(windowPadding)) {

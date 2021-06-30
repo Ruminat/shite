@@ -9,6 +9,10 @@ export default class Matricies {
     return Matricies.zip(matrixA, matrixB, (a, b) => a - b, { useBorders })
   }
 
+  static substractAbs (matrixA, matrixB, { useBorders = true } = {}) {
+    return Matricies.zip(matrixA, matrixB, (a, b) => Math.abs(a - b), { useBorders })
+  }
+
   static multiply (matrixA, matrixB, { useBorders = true } = {}) {
     return Matricies.zip(matrixA, matrixB, (a, b) => a * b, { useBorders })
   }

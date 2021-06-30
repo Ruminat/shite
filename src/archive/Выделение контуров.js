@@ -102,21 +102,40 @@ async function runShite () {
 // Тестирую градиент, лапласиан + накладываю это на оригинал
 async function runShite () {
   const { original } = await loadImageFromPics(IMAGES.segmentation.stones)
-  const denoised = original.copy().denoise({ method: Matrix.DENOISE_METHODS.WINDOW_MEDIAN, windowPadding: 1 })
-  const gradient = dropLowerThanBorder(getGradient(denoised, 30))
-  const laplace = denoised.applyMask(masks.laplace, { useBorders: true }).map(v => v > 8 ? borders(v * 10) : 0)
-  const multiplication = Matricies.multiply(denoised, gradient)
-  const masked = Matricies.withMask(denoised, multiplication)
+  for (let i = 6; i < 12; i++) {
+    for (let j = 6; j < 12; j++) {
+      original.matrix[i][j] = 255
+    }
+  }
+  const base = original.copy()
+  const gradient = dropLowerThanBorder(getGradient(base, 30))
+  // const laplace = base.applyMask(masks.laplace, { useBorders: true }).map(v => v > 8 ? borders(4 * v) : 0)
+  const multiplication = Matricies.multiply(base, gradient)
+  const masked = Matricies.withMask(base, multiplication)
 
-  const jija = toBlackAndWhite(Matricies.add(denoised, masked))
+  const jija = toBlackAndWhite(Matricies.add(base, masked))
 
   displayMatrix(original, 'Оригинал')
-  displayMatrix(denoised, 'Убрали шум')
+  displayMatrix(base, 'База')
   displayMatrix(gradient, 'Градиент')
-  displayMatrix(laplace, 'Лапласиан')
+  // displayMatrix(laplace, 'Лапласиан')
   displayMatrix(multiplication, 'Оригинал * Градиент')
   displayMatrix(masked, 'После маски')
-  displayMatrix(jija, 'После маски')
-  displayMatrix(Matricies.withMask(original, jija), 'После маски')
-  // displayMatrix(getGradient(Matricies.add(original, masked)), 'После маски')
+  displayMatrix(jija, 'Jija')
+  addLineBreak()
+  let erosion = jija
+  let dilation = jija
+  let diff = jija
+  // let keka;
+  for (let i = 1; i <= 5; i++) {
+    // keka = erosion
+    erosion = Morphology.erosion(erosion, structuralElements.E)
+    dilation = Morphology.dilation(dilation, structuralElements.E)
+    diff = Matricies.substractAbs(erosion, dilation)
+    displayMatrix(erosion, `Jija-${i}`)
+    displayMatrix(diff, `Jija-${i} (diff)`)
+  }
+  addLineBreak()
+  displayMatrix(Matricies.add(original, diff), 'Final shit')
+  displayMatrix(getGradient(toBlackAndWhite(Matricies.add(original, diff)), 80), 'Final shit')
 }

@@ -21,6 +21,10 @@ export default class Matrix {
     return new Matrix(this, this)
   }
 
+  getPoint ({ row, column }) {
+    return this.matrix[row][column]
+  }
+
   transposed () {
     this.matrix = genArray(this.columns, c => genArray(this.rows, r => this.matrix[r][c]))
     this.#calculateSides()
@@ -100,6 +104,15 @@ export default class Matrix {
 
   toArray () {
     return this.matrix.flat()
+  }
+
+  reduce (fn, initialValue = undefined) {
+    let accumulated = initialValue === undefined ? this.matrix[0][0] : initialValue
+    for (const { value, row, column } of this.matrixIterator()) {
+      if (initialValue === undefined && row === 0 && column === 0) continue
+      accumulated = fn(accumulated, value, row, column, this.matrix)
+    }
+    return accumulated
   }
 
   map (fn) {
